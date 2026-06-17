@@ -13,7 +13,7 @@ html,
 body {
   min-height: 100%;
   margin: 0;
-  touch-action: none;
+  touch-action: manipulation;
 }
 
 body {
@@ -21,6 +21,49 @@ body {
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
+}
+
+.boot-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 2rem;
+  border: 0;
+  background: #39383f;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.boot-screen img {
+  display: block;
+  width: min(70vw, 24rem);
+  max-height: min(70vh, 24rem);
+  object-fit: contain;
+  animation: boot-pulse 2.4s ease-in-out infinite;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.boot-screen.is-hidden {
+  display: none;
+}
+
+@keyframes boot-pulse {
+  0%,
+  100% {
+    transform: scale(0.98);
+  }
+
+  50% {
+    transform: scale(1.03);
+  }
 }
 
 .page {
@@ -33,7 +76,7 @@ body {
   gap: 2rem;
   padding: 2rem;
   position: relative;
-  touch-action: none;
+  touch-action: manipulation;
 }
 
 h1 {
@@ -68,7 +111,7 @@ h1 {
   border: 0;
   background: transparent;
   cursor: pointer;
-  touch-action: none;
+  touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
 
