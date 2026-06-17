@@ -9,6 +9,7 @@ const MIN_UNSQUISH_REPLAY_MS = 80;
 const FIRST_SQUISH_RETRY_MS = 100;
 
 const page = document.querySelector(".page");
+const bootScreen = document.querySelector(".boot-screen");
 const mooncat = document.querySelector("#mooncat");
 const squishSound = document.querySelector("#squishy-sound");
 const unsquishSound = document.querySelector("#unsquish-sound");
@@ -27,6 +28,7 @@ let pressToken = 0;
 let pendingUnsquishTimerId = null;
 let audioPrimed = false;
 let firstSquishRetryTimerId = null;
+let bootScreenDismissed = false;
 
 function resetAudio(audio) {
   audio.pause();
@@ -52,6 +54,68 @@ function playFresh(audio) {
       console.warn("Audio play failed", error);
     });
   }
+}
+
+function restoreAudioAfterPrime(audio, wasMuted) {
+  audio.pause();
+
+  try {
+    audio.currentTime = 0;
+  } catch (error) {
+    // Some mobile browsers can reject currentTime changes before metadata loads.
+  }
+
+  audio.muted = wasMuted;
+}
+
+function primeAudioFromGesture(audio) {
+  audio.load();
+
+  const wasMuted = audio.muted;
+  audio.muted = true;
+
+  const playPromise = audio.play();
+
+  if (playPromise) {
+    playPromise
+      .then(() => restoreAudioAfterPrime(audio, wasMuted))
+      .catch(() => {
+        audio.muted = wasMuted;
+      });
+  } else {
+    restoreAudioAfterPrime(audio, wasMuted);
+  }
+}
+
+function resumeAudioContextFromGesture() {
+  const audioContexts = [
+    window.audioContext,
+    window.audioCtx,
+    window.squishAudioContext,
+  ].filter((context) => context && typeof context.resume === "function");
+
+  audioContexts.forEach((context) => {
+    const resumePromise = context.resume();
+
+    if (resumePromise) {
+      resumePromise.catch(() => {});
+    }
+  });
+}
+
+function dismissBootScreen() {
+  if (bootScreenDismissed) {
+    return;
+  }
+
+  bootScreenDismissed = true;
+
+  resumeAudioContextFromGesture();
+  primeAudioFromGesture(squishSound);
+  primeAudioFromGesture(unsquishSound);
+
+  bootScreen.classList.add("is-hidden");
+  bootScreen.remove();
 }
 
 function stopPendingUnsquish() {
@@ -187,3 +251,6 @@ page.addEventListener("pointercancel", cancelPress);
 page.addEventListener("lostpointercapture", cancelPress);
 page.addEventListener("dragstart", (event) => event.preventDefault());
 page.addEventListener("selectstart", (event) => event.preventDefault());
+
+bootScreen.addEventListener("pointerdown", dismissBootScreen, { once: true });
+bootScreen.addEventListener("click", dismissBootScreen, { once: true });
