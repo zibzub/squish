@@ -4,7 +4,6 @@ const squishSoundSrc = "assets/squishy.mp3";
 const unsquishSoundSrc = "assets/unsquish.mp3";
 
 const MIN_SQUISH_REPLAY_MS = 70;
-const MIN_UNSQUISH_DELAY_MS = 0;
 const MIN_UNSQUISH_REPLAY_MS = 80;
 
 const page = document.querySelector(".page");
@@ -20,12 +19,9 @@ unsquishSound.load();
 
 let activePointerId = null;
 let isPressed = false;
-let pressStartedAt = 0;
 let lastSquishSoundAt = -Infinity;
 let lastUnsquishSoundAt = -Infinity;
 let pressToken = 0;
-let pendingUnsquishTimerId = null;
-let audioPrimed = false;
 let bootScreenDismissed = false;
 const unlockAudios = new Set();
 
@@ -111,7 +107,6 @@ function dismissBootScreen() {
   }
 
   bootScreenDismissed = true;
-  audioPrimed = true;
 
   resumeAudioContextFromGesture();
   squishSound.load();
@@ -121,43 +116,26 @@ function dismissBootScreen() {
   primeAudioFromGesture(squishSound);
   primeAudioFromGesture(unsquishSound);
 
-  bootScreen.classList.add("is-hidden");
   bootScreen.remove();
 }
 
 function stopPendingUnsquish() {
-  if (pendingUnsquishTimerId !== null) {
-    clearTimeout(pendingUnsquishTimerId);
-    pendingUnsquishTimerId = null;
-  }
-
   stopSound(unsquishSound);
 }
 
-function playUnsquishForToken(token, delayMs) {
-  const playUnsquish = () => {
-    pendingUnsquishTimerId = null;
-
-    if (token !== pressToken || isPressed) {
-      return;
-    }
-
-    const now = performance.now();
-
-    if (now - lastUnsquishSoundAt < MIN_UNSQUISH_REPLAY_MS) {
-      return;
-    }
-
-    lastUnsquishSoundAt = now;
-    playFresh(unsquishSound);
-  };
-
-  if (delayMs <= 0) {
-    playUnsquish();
+function playUnsquishForToken(token) {
+  if (token !== pressToken || isPressed) {
     return;
   }
 
-  pendingUnsquishTimerId = setTimeout(playUnsquish, delayMs);
+  const now = performance.now();
+
+  if (now - lastUnsquishSoundAt < MIN_UNSQUISH_REPLAY_MS) {
+    return;
+  }
+
+  lastUnsquishSoundAt = now;
+  playFresh(unsquishSound);
 }
 
 function startPress(event) {
@@ -169,7 +147,6 @@ function startPress(event) {
 
   activePointerId = event.pointerId;
   isPressed = true;
-  pressStartedAt = now;
   pressToken += 1;
   mooncat.src = squishedImage;
 
@@ -191,9 +168,6 @@ function endPress(event, options = {}) {
     return;
   }
 
-  const now = performance.now();
-  const pressDuration = now - pressStartedAt;
-  const unsquishDelay = Math.max(0, MIN_UNSQUISH_DELAY_MS - pressDuration);
   const releaseToken = pressToken;
 
   isPressed = false;
@@ -201,7 +175,7 @@ function endPress(event, options = {}) {
   mooncat.src = normalImage;
 
   if (options.playUnsquish) {
-    playUnsquishForToken(releaseToken, unsquishDelay);
+    playUnsquishForToken(releaseToken);
   } else {
     stopPendingUnsquish();
   }
