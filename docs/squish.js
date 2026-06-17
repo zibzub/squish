@@ -119,6 +119,27 @@ function dismissBootScreen() {
   bootScreen.remove();
 }
 
+function shouldUseBootScreen() {
+  const hasCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
+  const hasTouchPoints = navigator.maxTouchPoints > 0;
+
+  return hasCoarsePointer || hasTouchPoints;
+}
+
+function setupBootScreen() {
+  if (!bootScreen) {
+    return;
+  }
+
+  if (!shouldUseBootScreen()) {
+    bootScreen.remove();
+    return;
+  }
+
+  const bootStartEvent = window.PointerEvent ? "pointerdown" : "click";
+  bootScreen.addEventListener(bootStartEvent, dismissBootScreen, { once: true });
+}
+
 function stopPendingUnsquish() {
   stopSound(unsquishSound);
 }
@@ -200,5 +221,4 @@ page.addEventListener("lostpointercapture", cancelPress);
 page.addEventListener("dragstart", (event) => event.preventDefault());
 page.addEventListener("selectstart", (event) => event.preventDefault());
 
-const bootStartEvent = window.PointerEvent ? "pointerdown" : "click";
-bootScreen.addEventListener(bootStartEvent, dismissBootScreen, { once: true });
+setupBootScreen();
