@@ -1,0 +1,89 @@
+:root {
+  color-scheme: dark;
+  font-family: "Comic Sans MS", "Comic Sans", cursive;
+  background: #39383f;
+  color: #39383f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+  margin: 0;
+  touch-action: manipulation;
+}
+
+body {
+  min-height: 100vh;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 2rem;
+  padding: 2rem;
+  position: relative;
+  touch-action: manipulation;
+}
+
+h1 {
+  margin: 0;
+  position: absolute;
+  top: 2rem;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: clamp(1.75rem, 5vw, 3rem);
+  font-weight: 800;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 1rem;
+  }
+
+  h1 {
+    top: 1rem;
+  }
+}
+
+.cat-button {
+  display: grid;
+  place-items: center;
+  width: min(72vw, 26rem);
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cat-button:focus-visible {
+  outline: 0.25rem solid #2f7dd1;
+  outline-offset: 0.5rem;
+  border-radius: 0.5rem;
+}
+
+#mooncat {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
