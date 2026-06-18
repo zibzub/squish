@@ -1,11 +1,29 @@
 (function () {
   const normalImage = "assets/mooncat.png";
   const squishedImage = "assets/squish.png";
-  const squishSoundSrc = "assets/squishy.mp3";
-  const unsquishSoundSrc = "assets/unsquish.mp3";
+
+  const squishSoundSrcs = [
+    "assets/squishy-1.mp3",
+    "assets/squishy-2.mp3",
+    "assets/squishy-3.mp3",
+  ];
+  const unsquishSoundSrcs = [
+    "assets/unsquish-1.mp3",
+    "assets/unsquish-2.mp3",
+    "assets/unsquish-3.mp3",
+  ];
+  const fastSquishSoundSrcs = [
+    "assets/fast-squishy-1.mp3",
+    "assets/fast-squishy-2.mp3",
+  ];
+  const fastUnsquishSoundSrcs = [
+    "assets/fast-unsquish-1.mp3",
+    "assets/fast-unsquish-2.mp3",
+  ];
 
   const MIN_SQUISH_REPLAY_MS = 70;
   const MIN_UNSQUISH_REPLAY_MS = 80;
+  const FAST_TAP_MS = 220;
 
   function shouldUseBootScreen() {
     const hasCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
@@ -14,20 +32,42 @@
     return hasCoarsePointer || hasTouchPoints;
   }
 
+  function createAudioClip(src) {
+    const audio = new Audio(src);
+    audio.preload = "auto";
+    audio.load();
+    return audio;
+  }
+
+  function createAudioPool(srcs) {
+    return srcs.map(createAudioClip);
+  }
+
+  function chooseRandomAudio(pool) {
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
   function init(root = document) {
     const page = root.querySelector(".page");
     const bootScreen = root.querySelector(".boot-screen");
     const mooncat = root.querySelector("#mooncat");
-    const squishSound = root.querySelector("#squishy-sound");
-    const unsquishSound = root.querySelector("#unsquish-sound");
 
-    squishSound.src = squishSoundSrc;
-    unsquishSound.src = unsquishSoundSrc;
-    squishSound.load();
-    unsquishSound.load();
+    const squishSounds = createAudioPool(squishSoundSrcs);
+    const unsquishSounds = createAudioPool(unsquishSoundSrcs);
+    const fastSquishSounds = createAudioPool(fastSquishSoundSrcs);
+    const fastUnsquishSounds = createAudioPool(fastUnsquishSoundSrcs);
+    const allSounds = [
+      ...squishSounds,
+      ...unsquishSounds,
+      ...fastSquishSounds,
+      ...fastUnsquishSounds,
+    ];
 
     let activePointerId = null;
     let isPressed = false;
+    let activePressIsFast = false;
+    let lastPressAt = -Infinity;
+    let lastReleaseAt = -Infinity;
     let lastSquishSoundAt = -Infinity;
     let lastUnsquishSoundAt = -Infinity;
     let pressToken = 0;
@@ -42,10 +82,6 @@
       } catch (error) {
         console.warn("Audio reset failed", error);
       }
-    }
-
-    function stopSound(audio) {
-      resetAudio(audio);
     }
 
     function playFresh(audio) {
@@ -110,6 +146,16 @@
       });
     }
 
+    function preloadSounds() {
+      allSounds.forEach((audio) => {
+        audio.load();
+      });
+    }
+
+    function resetSounds() {
+      allSounds.forEach(resetLiveAudio);
+    }
+
     function dismissBootScreen() {
       if (bootScreenDismissed) {
         return;
@@ -118,12 +164,9 @@
       bootScreenDismissed = true;
 
       resumeAudioContextFromGesture();
-      squishSound.load();
-      unsquishSound.load();
-      resetLiveAudio(squishSound);
-      resetLiveAudio(unsquishSound);
-      primeAudioFromGesture(squishSound);
-      primeAudioFromGesture(unsquishSound);
+      preloadSounds();
+      resetSounds();
+      allSounds.forEach(primeAudioFromGesture);
 
       bootScreen.remove();
     }
@@ -142,8 +185,9 @@
       bootScreen.addEventListener(bootStartEvent, dismissBootScreen, { once: true });
     }
 
-    function stopPendingUnsquish() {
-      stopSound(unsquishSound);
+    function stopUnsquishSounds() {
+      unsquishSounds.forEach(resetAudio);
+      fastUnsquishSounds.forEach(resetAudio);
     }
 
     function playUnsquishForToken(token) {
@@ -157,8 +201,13 @@
         return;
       }
 
+      const wasFastRelease =
+        activePressIsFast || now - lastReleaseAt <= FAST_TAP_MS;
+      const pool = wasFastRelease ? fastUnsquishSounds : unsquishSounds;
+
+      lastReleaseAt = now;
       lastUnsquishSoundAt = now;
-      playFresh(unsquishSound);
+      playFresh(chooseRandomAudio(pool));
     }
 
     function startPress(event) {
@@ -169,17 +218,22 @@
       const now = performance.now();
 
       activePointerId = event.pointerId;
+      activePressIsFast = now - lastPressAt <= FAST_TAP_MS;
       isPressed = true;
       pressToken += 1;
       mooncat.src = squishedImage;
 
       page.setPointerCapture?.(event.pointerId);
-      stopPendingUnsquish();
+      stopUnsquishSounds();
 
       if (now - lastSquishSoundAt >= MIN_SQUISH_REPLAY_MS) {
+        const pool = activePressIsFast ? fastSquishSounds : squishSounds;
+
         lastSquishSoundAt = now;
-        playFresh(squishSound);
+        playFresh(chooseRandomAudio(pool));
       }
+
+      lastPressAt = now;
     }
 
     function endPress(event, options = {}) {
@@ -200,7 +254,7 @@
       if (options.playUnsquish) {
         playUnsquishForToken(releaseToken);
       } else {
-        stopPendingUnsquish();
+        stopUnsquishSounds();
       }
 
       if (event.pointerId !== undefined && page.hasPointerCapture?.(event.pointerId)) {
@@ -235,8 +289,15 @@
     init,
     shouldUseBootScreen,
     constants: {
+      FAST_TAP_MS,
       MIN_SQUISH_REPLAY_MS,
       MIN_UNSQUISH_REPLAY_MS,
+    },
+    soundSrcs: {
+      fastSquish: fastSquishSoundSrcs,
+      fastUnsquish: fastUnsquishSoundSrcs,
+      squish: squishSoundSrcs,
+      unsquish: unsquishSoundSrcs,
     },
   };
 
