@@ -51,6 +51,7 @@
     const page = root.querySelector(".page");
     const bootScreen = root.querySelector(".boot-screen");
     const mooncat = root.querySelector("#mooncat");
+    const soundToggle = root.querySelector(".sound-toggle");
 
     const squishSounds = createAudioPool(squishSoundSrcs);
     const unsquishSounds = createAudioPool(unsquishSoundSrcs);
@@ -72,6 +73,7 @@
     let lastUnsquishSoundAt = -Infinity;
     let pressToken = 0;
     let bootScreenDismissed = false;
+    let soundEnabled = false;
     const unlockAudios = new Set();
 
     function resetAudio(audio) {
@@ -85,6 +87,10 @@
     }
 
     function playFresh(audio) {
+      if (!soundEnabled) {
+        return;
+      }
+
       resetAudio(audio);
 
       const playPromise = audio.play();
@@ -156,6 +162,32 @@
       allSounds.forEach(resetLiveAudio);
     }
 
+    function updateSoundToggle() {
+      soundToggle.setAttribute("aria-pressed", String(soundEnabled));
+      soundToggle.setAttribute(
+        "aria-label",
+        soundEnabled ? "Turn sound off" : "Turn sound on"
+      );
+    }
+
+    function enableSoundFromGesture() {
+      resumeAudioContextFromGesture();
+      preloadSounds();
+      resetSounds();
+      allSounds.forEach(primeAudioFromGesture);
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      updateSoundToggle();
+
+      if (soundEnabled) {
+        enableSoundFromGesture();
+      } else {
+        resetSounds();
+      }
+    }
+
     function dismissBootScreen() {
       if (bootScreenDismissed) {
         return;
@@ -191,7 +223,7 @@
     }
 
     function playUnsquishForToken(token) {
-      if (token !== pressToken || isPressed) {
+      if (!soundEnabled || token !== pressToken || isPressed) {
         return;
       }
 
@@ -276,8 +308,10 @@
     page.addEventListener("lostpointercapture", cancelPress);
     page.addEventListener("dragstart", (event) => event.preventDefault());
     page.addEventListener("selectstart", (event) => event.preventDefault());
+    soundToggle.addEventListener("click", toggleSound);
 
     setupBootScreen();
+    updateSoundToggle();
 
     return {
       dismissBootScreen,

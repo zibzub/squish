@@ -101,6 +101,11 @@ function playedPaths(playSpy) {
   return playSpy.mock.instances.map(srcPath);
 }
 
+function enableSound(soundToggle, playSpy) {
+  soundToggle.click();
+  playSpy.mockClear();
+}
+
 function expectedSoundPaths() {
   return [
     ...window.MoonCatSquish.soundSrcs.squish,
@@ -129,6 +134,7 @@ function loadApp(options) {
     liveAudio,
     mooncat: document.querySelector("#mooncat"),
     page: document.querySelector(".page"),
+    soundToggle: document.querySelector(".sound-toggle"),
   };
 }
 
@@ -187,8 +193,9 @@ describe("MoonCat Squish", () => {
   });
 
   test("desktop pointerdown squishes the image and plays only squish audio", () => {
-    const { mooncat, page, playSpy } = loadApp();
+    const { mooncat, page, playSpy, soundToggle } = loadApp();
 
+    enableSound(soundToggle, playSpy);
     page.dispatchEvent(pointerEvent("pointerdown"));
 
     expect(mooncat.getAttribute("src")).toBe("assets/squish.png");
@@ -196,8 +203,9 @@ describe("MoonCat Squish", () => {
   });
 
   test("pointerup restores the image and plays only unsquish audio", () => {
-    const { mooncat, page, playSpy } = loadApp();
+    const { mooncat, page, playSpy, soundToggle } = loadApp();
 
+    enableSound(soundToggle, playSpy);
     page.dispatchEvent(pointerEvent("pointerdown"));
     page.dispatchEvent(pointerEvent("pointerup"));
 
@@ -209,8 +217,9 @@ describe("MoonCat Squish", () => {
   });
 
   test("fast tap timing selects fast squish and fast unsquish pools", () => {
-    const { page, playSpy } = loadApp();
+    const { page, playSpy, soundToggle } = loadApp();
 
+    enableSound(soundToggle, playSpy);
     window.performance.now.mockReturnValue(1000);
     page.dispatchEvent(pointerEvent("pointerdown", 1));
     page.dispatchEvent(pointerEvent("pointerup", 1));
@@ -230,8 +239,9 @@ describe("MoonCat Squish", () => {
   });
 
   test("squish replay throttle prevents immediate duplicate squish sounds", () => {
-    const { page, playSpy } = loadApp();
+    const { page, playSpy, soundToggle } = loadApp();
 
+    enableSound(soundToggle, playSpy);
     window.performance.now.mockReturnValue(1000);
     page.dispatchEvent(pointerEvent("pointerdown", 1));
     page.dispatchEvent(pointerEvent("pointerup", 1));
@@ -247,8 +257,9 @@ describe("MoonCat Squish", () => {
   });
 
   test("unsquish replay throttle prevents immediate duplicate unsquish sounds", () => {
-    const { page, playSpy } = loadApp();
+    const { page, playSpy, soundToggle } = loadApp();
 
+    enableSound(soundToggle, playSpy);
     window.performance.now.mockReturnValue(1000);
     page.dispatchEvent(pointerEvent("pointerdown", 1));
     page.dispatchEvent(pointerEvent("pointerup", 1));
@@ -265,12 +276,25 @@ describe("MoonCat Squish", () => {
   });
 
   test("press and release do not create new Audio objects", () => {
-    const { createdAudio, page } = loadApp();
+    const { createdAudio, page, playSpy, soundToggle } = loadApp();
+    enableSound(soundToggle, playSpy);
     const audioCountAfterStartup = createdAudio.length;
 
     page.dispatchEvent(pointerEvent("pointerdown"));
     page.dispatchEvent(pointerEvent("pointerup"));
 
     expect(createdAudio).toHaveLength(audioCountAfterStartup);
+  });
+
+  test("sound starts off and controls do not squish the image", () => {
+    const { mooncat, playSpy, soundToggle } = loadApp();
+    const backControl = document.querySelector(".back-control");
+
+    expect(soundToggle.getAttribute("aria-pressed")).toBe("false");
+    soundToggle.dispatchEvent(pointerEvent("pointerdown"));
+    backControl.dispatchEvent(pointerEvent("pointerdown"));
+
+    expect(mooncat.getAttribute("src")).toBe("assets/mooncat.png");
+    expect(playedPaths(playSpy)).toEqual([]);
   });
 });

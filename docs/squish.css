@@ -29,6 +29,65 @@ body {
   -webkit-touch-callout: none;
 }
 
+.corner-control {
+  position: fixed;
+  z-index: 30;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: transparent;
+  border: 1.5px solid currentColor;
+  border-radius: 999px;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0.33;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.corner-control:hover,
+.corner-control:focus-visible {
+  opacity: 1;
+}
+
+.corner-control:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 0.25rem;
+}
+
+.corner-control svg {
+  width: 1.35rem;
+  height: 1.35rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.back-control {
+  top: max(0.75rem, env(safe-area-inset-top));
+  left: max(0.75rem, env(safe-area-inset-left));
+}
+
+.sound-toggle {
+  top: max(0.75rem, env(safe-area-inset-top));
+  right: max(0.75rem, env(safe-area-inset-right));
+}
+
+.sound-icon--on {
+  display: none;
+}
+
+.sound-toggle[aria-pressed="true"] .sound-icon--on {
+  display: inline;
+}
+
+.sound-toggle[aria-pressed="true"] .sound-icon--off {
+  display: none;
+}
+
 .boot-screen {
   position: fixed;
   inset: 0;
@@ -135,4 +194,16 @@ h1 {
   pointer-events: none;
   user-select: none;
   -webkit-user-drag: none;
+}
+
+@media (min-width: 768px) {
+  .corner-control {
+    width: 5rem;
+    height: 5rem;
+  }
+
+  .corner-control svg {
+    width: 2.7rem;
+    height: 2.7rem;
+  }
 }
