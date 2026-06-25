@@ -88,47 +88,6 @@ body {
   display: none;
 }
 
-.boot-screen {
-  position: fixed;
-  inset: 0;
-  z-index: 10;
-  display: grid;
-  place-items: center;
-  width: 100%;
-  height: 100vh;
-  height: 100dvh;
-  overflow: hidden;
-  padding: 2rem;
-  border: 0;
-  background: #39383f;
-  cursor: pointer;
-  touch-action: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.boot-screen img {
-  display: block;
-  width: min(70vw, 24rem);
-  max-height: min(70vh, 24rem);
-  max-height: min(70dvh, 24rem);
-  object-fit: contain;
-  animation: boot-pulse 2.4s ease-in-out infinite;
-  pointer-events: none;
-  user-select: none;
-  -webkit-user-drag: none;
-}
-
-@keyframes boot-pulse {
-  0%,
-  100% {
-    transform: scale(0.98);
-  }
-
-  50% {
-    transform: scale(1.03);
-  }
-}
-
 .page {
   width: 100%;
   height: 100vh;

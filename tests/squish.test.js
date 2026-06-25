@@ -120,18 +120,12 @@ function loadApp(options) {
   window.__MOONCAT_SQUISH_SKIP_AUTO_INIT__ = false;
 
   const stubs = installBrowserStubs(options);
-  const bootScreen = document.querySelector(".boot-screen");
-
   vi.spyOn(window.performance, "now").mockReturnValue(1000);
   vi.spyOn(Math, "random").mockReturnValue(0);
   window.eval(squishScript);
 
-  const liveAudio = stubs.createdAudio.slice(0, expectedSoundPaths().length);
-
   return {
     ...stubs,
-    bootScreen,
-    liveAudio,
     mooncat: document.querySelector("#mooncat"),
     page: document.querySelector(".page"),
     soundToggle: document.querySelector(".sound-toggle"),
@@ -146,46 +140,27 @@ describe("MoonCat Squish", () => {
     delete window.__MOONCAT_SQUISH_SKIP_AUTO_INIT__;
   });
 
-  test("desktop startup removes the boot screen and loads every live audio clip", () => {
-    const { bootScreen, liveAudio, loadSpy } = loadApp({
-      coarsePointer: false,
-      touchPoints: 0,
-    });
+  test("startup shows the main screen with sound off and does not initialize audio", () => {
+    const { createdAudio, loadSpy, mooncat, soundToggle } = loadApp();
 
-    expect(bootScreen.isConnected).toBe(false);
-    expect(liveAudio.map(srcPath)).toEqual(expectedSoundPaths());
-    expect(loadSpy.mock.instances).toEqual(expect.arrayContaining(liveAudio));
+    expect(document.querySelector(".boot-screen")).toBeNull();
+    expect(mooncat.getAttribute("src")).toBe("assets/mooncat.png");
+    expect(soundToggle.getAttribute("aria-pressed")).toBe("false");
+    expect(createdAudio).toHaveLength(0);
+    expect(loadSpy).not.toHaveBeenCalled();
   });
 
-  test("coarse pointer startup keeps the boot screen", () => {
-    const { bootScreen } = loadApp({
-      coarsePointer: true,
-      touchPoints: 0,
-    });
-
-    expect(bootScreen.isConnected).toBe(true);
-  });
-
-  test("touch point startup keeps the boot screen", () => {
-    const { bootScreen } = loadApp({
-      coarsePointer: false,
-      touchPoints: 1,
-    });
-
-    expect(bootScreen.isConnected).toBe(true);
-  });
-
-  test("boot dismissal preloads and unlocks all clips", () => {
-    const { bootScreen, createdAudio, liveAudio, loadSpy } = loadApp({
+  test("sound toggle preloads and unlocks all clips", () => {
+    const { createdAudio, loadSpy, soundToggle } = loadApp({
       coarsePointer: true,
       touchPoints: 1,
     });
 
-    bootScreen.dispatchEvent(pointerEvent("pointerdown"));
-
+    soundToggle.click();
+    const liveAudio = createdAudio.slice(0, expectedSoundPaths().length);
     const unlockAudio = createdAudio.slice(liveAudio.length);
 
-    expect(bootScreen.isConnected).toBe(false);
+    expect(soundToggle.getAttribute("aria-pressed")).toBe("true");
     expect(unlockAudio).toHaveLength(expectedSoundPaths().length);
     expect(unlockAudio.map(srcPath)).toEqual(expectedSoundPaths());
     expect(loadSpy.mock.instances).toEqual(expect.arrayContaining(liveAudio));

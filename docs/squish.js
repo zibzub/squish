@@ -25,13 +25,6 @@
   const MIN_UNSQUISH_REPLAY_MS = 80;
   const FAST_TAP_MS = 220;
 
-  function shouldUseBootScreen() {
-    const hasCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
-    const hasTouchPoints = navigator.maxTouchPoints > 0;
-
-    return hasCoarsePointer || hasTouchPoints;
-  }
-
   function createAudioClip(src) {
     const audio = new Audio(src);
     audio.preload = "auto";
@@ -49,20 +42,14 @@
 
   function init(root = document) {
     const page = root.querySelector(".page");
-    const bootScreen = root.querySelector(".boot-screen");
     const mooncat = root.querySelector("#mooncat");
     const soundToggle = root.querySelector(".sound-toggle");
 
-    const squishSounds = createAudioPool(squishSoundSrcs);
-    const unsquishSounds = createAudioPool(unsquishSoundSrcs);
-    const fastSquishSounds = createAudioPool(fastSquishSoundSrcs);
-    const fastUnsquishSounds = createAudioPool(fastUnsquishSoundSrcs);
-    const allSounds = [
-      ...squishSounds,
-      ...unsquishSounds,
-      ...fastSquishSounds,
-      ...fastUnsquishSounds,
-    ];
+    let squishSounds = [];
+    let unsquishSounds = [];
+    let fastSquishSounds = [];
+    let fastUnsquishSounds = [];
+    let allSounds = [];
 
     let activePointerId = null;
     let isPressed = false;
@@ -72,7 +59,6 @@
     let lastSquishSoundAt = -Infinity;
     let lastUnsquishSoundAt = -Infinity;
     let pressToken = 0;
-    let bootScreenDismissed = false;
     let soundEnabled = false;
     const unlockAudios = new Set();
 
@@ -162,6 +148,23 @@
       allSounds.forEach(resetLiveAudio);
     }
 
+    function initializeSounds() {
+      if (allSounds.length) {
+        return;
+      }
+
+      squishSounds = createAudioPool(squishSoundSrcs);
+      unsquishSounds = createAudioPool(unsquishSoundSrcs);
+      fastSquishSounds = createAudioPool(fastSquishSoundSrcs);
+      fastUnsquishSounds = createAudioPool(fastUnsquishSoundSrcs);
+      allSounds = [
+        ...squishSounds,
+        ...unsquishSounds,
+        ...fastSquishSounds,
+        ...fastUnsquishSounds,
+      ];
+    }
+
     function updateSoundToggle() {
       soundToggle.setAttribute("aria-pressed", String(soundEnabled));
       soundToggle.setAttribute(
@@ -171,6 +174,7 @@
     }
 
     function enableSoundFromGesture() {
+      initializeSounds();
       resumeAudioContextFromGesture();
       preloadSounds();
       resetSounds();
@@ -186,35 +190,6 @@
       } else {
         resetSounds();
       }
-    }
-
-    function dismissBootScreen() {
-      if (bootScreenDismissed) {
-        return;
-      }
-
-      bootScreenDismissed = true;
-
-      resumeAudioContextFromGesture();
-      preloadSounds();
-      resetSounds();
-      allSounds.forEach(primeAudioFromGesture);
-
-      bootScreen.remove();
-    }
-
-    function setupBootScreen() {
-      if (!bootScreen) {
-        return;
-      }
-
-      if (!shouldUseBootScreen()) {
-        bootScreen.remove();
-        return;
-      }
-
-      const bootStartEvent = window.PointerEvent ? "pointerdown" : "click";
-      bootScreen.addEventListener(bootStartEvent, dismissBootScreen, { once: true });
     }
 
     function stopUnsquishSounds() {
@@ -310,18 +285,13 @@
     page.addEventListener("selectstart", (event) => event.preventDefault());
     soundToggle.addEventListener("click", toggleSound);
 
-    setupBootScreen();
     updateSoundToggle();
 
-    return {
-      dismissBootScreen,
-      shouldUseBootScreen,
-    };
+    return {};
   }
 
   window.MoonCatSquish = {
     init,
-    shouldUseBootScreen,
     constants: {
       FAST_TAP_MS,
       MIN_SQUISH_REPLAY_MS,
